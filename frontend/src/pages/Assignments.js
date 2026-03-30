@@ -216,7 +216,7 @@ const Assignments = () => {
               <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start', flexShrink: 0 }}>
                 {a.filePath && (
                   <a
-                    href={`http://localhost:5000/${a.filePath}`}
+                    href={`/uploads/${a.filePath.replace(/\\/g, '/').split('uploads/')[1]}`}
                     download
                     target="_blank"
                     rel="noreferrer"

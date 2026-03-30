@@ -11,13 +11,13 @@ app.use(express.json());
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Routes
-app.use('/api/auth', require('./routes/auth'));
+app.use('/api/auth',        require('./routes/auth'));
 app.use('/api/assignments', require('./routes/assignments'));
 app.use('/api/notifications', require('./routes/notifications'));
-app.use('/api/attendance', require('./routes/attendance'));
+app.use('/api/attendance',  require('./routes/attendance'));
 app.use('/api/reportcards', require('./routes/reportcards'));
+app.use('/api/students',    require('./routes/students'));
 
-// Health check
 app.get('/api/health', (req, res) => res.json({ status: 'ok' }));
 
 mongoose.connect(process.env.MONGO_URI)

@@ -7,32 +7,33 @@ const AdminDashboard = () => {
   const { user } = useAuth();
   const [users, setUsers] = useState([]);
   const [assignments, setAssignments] = useState([]);
-  const [tab, setTab] = useState('users');
+  const [tab, setTab] = useState('teachers');
   const [showModal, setShowModal] = useState(false);
-  const [form, setForm] = useState({ name: '', email: '', password: '', role: 'teacher' });
+  const [form, setForm] = useState({ name: '', email: '', password: '', role: 'teacher', childName: '', childClass: '' });
 
   const fetchUsers = async () => {
-    const { data } = await axios.get('/api/auth/users');
-    setUsers(data);
+    try {
+      const { data } = await axios.get('/api/auth/users');
+      setUsers(data);
+    } catch { toast.error('Failed to load users'); }
   };
 
   const fetchAssignments = async () => {
-    const { data } = await axios.get('/api/assignments');
-    setAssignments(data);
+    try {
+      const { data } = await axios.get('/api/assignments/public');
+      setAssignments(data);
+    } catch { toast.error('Failed to load assignments'); }
   };
 
-  useEffect(() => {
-    fetchUsers();
-    fetchAssignments();
-  }, []);
+  useEffect(() => { fetchUsers(); fetchAssignments(); }, []);
 
   const handleCreateUser = async (e) => {
     e.preventDefault();
     try {
       await axios.post('/api/auth/register', form);
-      toast.success('Teacher account created!');
+      toast.success(`${form.role.charAt(0).toUpperCase() + form.role.slice(1)} account created!`);
       setShowModal(false);
-      setForm({ name: '', email: '', password: '', role: 'teacher' });
+      setForm({ name: '', email: '', password: '', role: 'teacher', childName: '', childClass: '' });
       fetchUsers();
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to create user');
@@ -40,14 +41,12 @@ const AdminDashboard = () => {
   };
 
   const handleDeleteUser = async (id) => {
-    if (!window.confirm('Delete this teacher?')) return;
+    if (!window.confirm('Delete this user?')) return;
     try {
       await axios.delete(`/api/auth/users/${id}`);
-      toast.success('Teacher deleted');
+      toast.success('User deleted');
       fetchUsers();
-    } catch {
-      toast.error('Failed to delete');
-    }
+    } catch { toast.error('Failed to delete'); }
   };
 
   const handleDeleteAssignment = async (id) => {
@@ -56,59 +55,48 @@ const AdminDashboard = () => {
       await axios.delete(`/api/assignments/${id}`);
       toast.success('Assignment deleted');
       fetchAssignments();
-    } catch {
-      toast.error('Failed to delete');
-    }
+    } catch { toast.error('Failed to delete'); }
   };
 
   const teachers = users.filter(u => u.role === 'teacher');
+  const parents = users.filter(u => u.role === 'parent');
 
   return (
     <div className="dashboard">
       <div className="dashboard-header">
-        <h1>Admin Dashboard</h1>
-        <p>Welcome, {user.name}! Manage teachers, assignments, and notifications.</p>
+        <h1>⚙️ Admin Dashboard</h1>
+        <p>Welcome, {user.name}! Manage the school portal from here.</p>
       </div>
 
       <div className="stats-row">
-        <div className="stat-card">
-          <div className="num">{teachers.length}</div>
-          <div className="label">Teachers</div>
-        </div>
-        <div className="stat-card">
-          <div className="num">{assignments.length}</div>
-          <div className="label">Total Assignments</div>
-        </div>
-        <div className="stat-card">
-          <div className="num">{[...new Set(assignments.map(a => a.class))].length}</div>
-          <div className="label">Classes Covered</div>
-        </div>
+        <div className="stat-card"><div className="num">{teachers.length}</div><div className="label">Teachers</div></div>
+        <div className="stat-card"><div className="num">{parents.length}</div><div className="label">Parents</div></div>
+        <div className="stat-card"><div className="num">{assignments.length}</div><div className="label">Assignments</div></div>
+        <div className="stat-card"><div className="num">{[...new Set(assignments.map(a => a.class))].length}</div><div className="label">Classes Active</div></div>
       </div>
 
       <div className="tabs">
-        <button className={`tab ${tab === 'users' ? 'active' : ''}`} onClick={() => setTab('users')}>👥 Manage Teachers</button>
-        <button className={`tab ${tab === 'assignments' ? 'active' : ''}`} onClick={() => setTab('assignments')}>📋 All Assignments</button>
+        <button className={`tab ${tab === 'teachers' ? 'active' : ''}`} onClick={() => setTab('teachers')}>👨‍🏫 Teachers</button>
+        <button className={`tab ${tab === 'parents' ? 'active' : ''}`} onClick={() => setTab('parents')}>👨‍👩‍👧 Parents</button>
+        <button className={`tab ${tab === 'assignments' ? 'active' : ''}`} onClick={() => setTab('assignments')}>📋 Assignments</button>
       </div>
 
-      {tab === 'users' && (
+      {/* Teachers */}
+      {tab === 'teachers' && (
         <div>
           <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1rem' }}>
-            <button className="btn btn-primary" onClick={() => setShowModal(true)}>+ Add Teacher</button>
+            <button className="btn btn-primary" onClick={() => { setForm(f => ({ ...f, role: 'teacher' })); setShowModal(true); }}>+ Add Teacher</button>
           </div>
-          <div className="section-title">Teachers ({teachers.length})</div>
           <div className="table-wrap">
             <table>
-              <thead>
-                <tr><th>Name</th><th>Email</th><th>Role</th><th>Action</th></tr>
-              </thead>
+              <thead><tr><th>Name</th><th>Email</th><th>Action</th></tr></thead>
               <tbody>
                 {teachers.length === 0
-                  ? <tr><td colSpan="4" style={{ textAlign: 'center', color: '#888' }}>No teachers added yet</td></tr>
+                  ? <tr><td colSpan="3" style={{ textAlign: 'center', color: '#888' }}>No teachers yet</td></tr>
                   : teachers.map(u => (
                     <tr key={u._id}>
                       <td>{u.name}</td>
                       <td>{u.email}</td>
-                      <td><span className="badge badge-subject">Teacher</span></td>
                       <td><button className="btn btn-danger btn-sm" onClick={() => handleDeleteUser(u._id)}>Delete</button></td>
                     </tr>
                   ))}
@@ -118,17 +106,42 @@ const AdminDashboard = () => {
         </div>
       )}
 
+      {/* Parents */}
+      {tab === 'parents' && (
+        <div>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1rem' }}>
+            <button className="btn btn-primary" onClick={() => { setForm(f => ({ ...f, role: 'parent' })); setShowModal(true); }}>+ Add Parent</button>
+          </div>
+          <div className="table-wrap">
+            <table>
+              <thead><tr><th>Parent Name</th><th>Email</th><th>Child Name</th><th>Child Class</th><th>Action</th></tr></thead>
+              <tbody>
+                {parents.length === 0
+                  ? <tr><td colSpan="5" style={{ textAlign: 'center', color: '#888' }}>No parents yet</td></tr>
+                  : parents.map(u => (
+                    <tr key={u._id}>
+                      <td>{u.name}</td>
+                      <td>{u.email}</td>
+                      <td>{u.childName || '—'}</td>
+                      <td>{u.childClass ? <span className="badge badge-class">Class {u.childClass}</span> : '—'}</td>
+                      <td><button className="btn btn-danger btn-sm" onClick={() => handleDeleteUser(u._id)}>Delete</button></td>
+                    </tr>
+                  ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* Assignments */}
       {tab === 'assignments' && (
         <div>
           <p style={{ color: '#666', fontSize: '0.9rem', marginBottom: '1rem' }}>
-            These are the same assignments visible on the public <strong>Assignments</strong> page where anyone can search and download them.
+            These are the same assignments visible on the public Assignments page.
           </p>
-          <div className="section-title">All Assignments ({assignments.length})</div>
           <div className="table-wrap">
             <table>
-              <thead>
-                <tr><th>Title</th><th>Subject</th><th>Class</th><th>Teacher</th><th>Due Date</th><th>PDF</th><th>Action</th></tr>
-              </thead>
+              <thead><tr><th>Title</th><th>Subject</th><th>Class</th><th>Teacher</th><th>Due</th><th>PDF</th><th>Action</th></tr></thead>
               <tbody>
                 {assignments.length === 0
                   ? <tr><td colSpan="7" style={{ textAlign: 'center', color: '#888' }}>No assignments yet</td></tr>
@@ -141,7 +154,7 @@ const AdminDashboard = () => {
                       <td>{a.dueDate ? new Date(a.dueDate).toLocaleDateString('en-IN') : '—'}</td>
                       <td>
                         {a.filePath
-                          ? <a href={`http://localhost:5000/${a.filePath}`} target="_blank" rel="noreferrer" className="btn btn-secondary btn-sm">⬇ PDF</a>
+                          ? <a href={`/uploads/${a.filePath.replace(/\\/g, '/').split('uploads/')[1]}`} target="_blank" rel="noreferrer" className="btn btn-secondary btn-sm">⬇ PDF</a>
                           : '—'}
                       </td>
                       <td><button className="btn btn-danger btn-sm" onClick={() => handleDeleteAssignment(a._id)}>Delete</button></td>
@@ -153,14 +166,15 @@ const AdminDashboard = () => {
         </div>
       )}
 
+      {/* Add User Modal */}
       {showModal && (
         <div className="modal-overlay">
           <div className="modal">
-            <h2>Add New Teacher</h2>
+            <h2>Add {form.role.charAt(0).toUpperCase() + form.role.slice(1)}</h2>
             <form onSubmit={handleCreateUser}>
               <div className="form-group">
                 <label>Full Name</label>
-                <input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} required placeholder="Teacher's full name" />
+                <input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} required placeholder="Full name" />
               </div>
               <div className="form-group">
                 <label>Email</label>
@@ -168,11 +182,26 @@ const AdminDashboard = () => {
               </div>
               <div className="form-group">
                 <label>Password</label>
-                <input type="password" value={form.password} onChange={e => setForm({ ...form, password: e.target.value })} required placeholder="Set a password" />
+                <input type="password" value={form.password} onChange={e => setForm({ ...form, password: e.target.value })} required placeholder="Set a password" minLength="6" />
               </div>
+              {form.role === 'parent' && (
+                <div className="form-row">
+                  <div className="form-group">
+                    <label>Child's Name</label>
+                    <input value={form.childName} onChange={e => setForm({ ...form, childName: e.target.value })} required placeholder="Child's full name" />
+                  </div>
+                  <div className="form-group">
+                    <label>Child's Class</label>
+                    <select value={form.childClass} onChange={e => setForm({ ...form, childClass: e.target.value })} required>
+                      <option value="">Select Class</option>
+                      {[...Array(12)].map((_, i) => <option key={i + 1} value={i + 1}>Class {i + 1}</option>)}
+                    </select>
+                  </div>
+                </div>
+              )}
               <div className="modal-footer">
                 <button type="button" className="btn btn-secondary" onClick={() => setShowModal(false)}>Cancel</button>
-                <button type="submit" className="btn btn-primary">Create Teacher</button>
+                <button type="submit" className="btn btn-primary">Create Account</button>
               </div>
             </form>
           </div>

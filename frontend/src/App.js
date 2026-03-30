@@ -7,7 +7,7 @@ import Navbar from './components/Navbar';
 import Home from './pages/Home';
 import Login from './pages/Login';
 import Assignments from './pages/Assignments';
-import Attendance from './pages/Attendance';
+import Attendance from './pages/attendance/Attendance';
 import Notifications from './pages/Notifications';
 import ParentPortal from './pages/ParentPortal';
 import AdminDashboard from './pages/admin/AdminDashboard';

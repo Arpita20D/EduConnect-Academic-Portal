@@ -7,10 +7,13 @@ import Navbar from './components/Navbar';
 import Home from './pages/Home';
 import Login from './pages/Login';
 import Assignments from './pages/Assignments';
+import Attendance from './pages/Attendance';
 import Notifications from './pages/Notifications';
+import ParentPortal from './pages/ParentPortal';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import TeacherDashboard from './pages/teacher/TeacherDashboard';
 import StudentDashboard from './pages/student/StudentDashboard';
+import ParentDashboard from './pages/parent/ParentDashboard';
 
 const PrivateRoute = ({ children, roles }) => {
   const { user, loading } = useAuth();
@@ -28,17 +31,20 @@ const AppRoutes = () => {
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/login" element={user ? <Navigate to={`/${user.role}`} /> : <Login />} />
+
+        {/* Public pages */}
         <Route path="/assignments" element={<Assignments />} />
+        <Route path="/attendance" element={<Attendance />} />
         <Route path="/notifications" element={<Notifications />} />
-        <Route path="/admin" element={
-          <PrivateRoute roles={['admin']}><AdminDashboard /></PrivateRoute>
-        } />
-        <Route path="/teacher" element={
-          <PrivateRoute roles={['teacher']}><TeacherDashboard /></PrivateRoute>
-        } />
-        <Route path="/student" element={
-          <PrivateRoute roles={['student']}><StudentDashboard /></PrivateRoute>
-        } />
+        <Route path="/parent-portal" element={<ParentPortal />} />
+
+        {/* Private dashboards */}
+        <Route path="/admin"   element={<PrivateRoute roles={['admin']}><AdminDashboard /></PrivateRoute>} />
+        <Route path="/teacher" element={<PrivateRoute roles={['teacher']}><TeacherDashboard /></PrivateRoute>} />
+        <Route path="/student" element={<PrivateRoute roles={['student']}><StudentDashboard /></PrivateRoute>} />
+        <Route path="/parent"  element={<PrivateRoute roles={['parent']}><ParentDashboard /></PrivateRoute>} />
+
+        <Route path="*" element={<Navigate to="/" />} />
       </Routes>
     </>
   );

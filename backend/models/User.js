@@ -5,9 +5,10 @@ const userSchema = new mongoose.Schema({
   name: { type: String, required: true },
   email: { type: String, required: true, unique: true },
   password: { type: String, required: true },
-  role: { type: String, enum: ['admin', 'teacher', 'student'], required: true },
-  // For students: which class they belong to (1-12)
+  role: { type: String, enum: ['admin', 'teacher', 'student', 'parent'], required: true },
   class: { type: Number, min: 1, max: 12 },
+  childName: { type: String },
+  childClass: { type: Number, min: 1, max: 12 },
 }, { timestamps: true });
 
 userSchema.pre('save', async function (next) {

@@ -1,25 +1,24 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 
 const AdminDashboard = () => {
   const { user } = useAuth();
-  const [users, setUsers]             = useState([]);
-  const [students, setStudents]       = useState([]);
+  const [users,       setUsers]       = useState([]);
+  const [students,    setStudents]    = useState([]);
   const [assignments, setAssignments] = useState([]);
-  const [tab, setTab]                 = useState('teachers');
+  const [tab, setTab] = useState('teachers');
 
-  // Modals
-  const [showUserModal, setShowUserModal]       = useState(false);
+  const [showUserModal,    setShowUserModal]    = useState(false);
   const [showStudentModal, setShowStudentModal] = useState(false);
 
   const emptyUser    = { name: '', email: '', password: '', role: 'teacher' };
   const emptyStudent = { name: '', class: '', rollNumber: '', parentName: '' };
-  const [userForm, setUserForm]       = useState(emptyUser);
+  const [userForm,    setUserForm]    = useState(emptyUser);
   const [studentForm, setStudentForm] = useState(emptyStudent);
 
-  /* ── fetch helpers ── */
   const fetchUsers = async () => {
     try { const { data } = await axios.get('/api/auth/users'); setUsers(data); }
     catch { toast.error('Failed to load users'); }
@@ -35,94 +34,61 @@ const AdminDashboard = () => {
 
   useEffect(() => { fetchUsers(); fetchStudents(); fetchAssignments(); }, []);
 
-  /* ── create teacher / parent account ── */
   const handleCreateUser = async (e) => {
     e.preventDefault();
     try {
       await axios.post('/api/auth/register', userForm);
-      toast.success(`${userForm.role.charAt(0).toUpperCase() + userForm.role.slice(1)} account created!`);
-      setShowUserModal(false);
-      setUserForm(emptyUser);
-      fetchUsers();
-    } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to create account');
-    }
+      toast.success('Account created!');
+      setShowUserModal(false); setUserForm(emptyUser); fetchUsers();
+    } catch (err) { toast.error(err.response?.data?.message || 'Failed'); }
   };
 
-  /* ── add student record ── */
   const handleAddStudent = async (e) => {
     e.preventDefault();
     try {
       await axios.post('/api/students', studentForm);
       toast.success('Student added!');
-      setShowStudentModal(false);
-      setStudentForm(emptyStudent);
-      fetchStudents();
-    } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to add student');
-    }
+      setShowStudentModal(false); setStudentForm(emptyStudent); fetchStudents();
+    } catch (err) { toast.error(err.response?.data?.message || 'Failed'); }
   };
 
-  const handleDeleteUser = async (id) => {
-    if (!window.confirm('Delete this account?')) return;
-    try { await axios.delete(`/api/auth/users/${id}`); toast.success('Deleted'); fetchUsers(); }
-    catch { toast.error('Failed to delete'); }
-  };
-
-  const handleDeleteStudent = async (id) => {
-    if (!window.confirm('Remove this student?')) return;
-    try { await axios.delete(`/api/students/${id}`); toast.success('Removed'); fetchStudents(); }
-    catch { toast.error('Failed to remove'); }
-  };
-
-  const handleDeleteAssignment = async (id) => {
-    if (!window.confirm('Delete this assignment?')) return;
-    try { await axios.delete(`/api/assignments/${id}`); toast.success('Deleted'); fetchAssignments(); }
-    catch { toast.error('Failed to delete'); }
-  };
+  const handleDeleteUser    = async (id) => { if (!window.confirm('Delete?')) return; try { await axios.delete(`/api/auth/users/${id}`); fetchUsers(); toast.success('Deleted'); } catch { toast.error('Failed'); } };
+  const handleDeleteStudent = async (id) => { if (!window.confirm('Remove student?')) return; try { await axios.delete(`/api/students/${id}`); fetchStudents(); toast.success('Removed'); } catch { toast.error('Failed'); } };
+  const handleDeleteAssignment = async (id) => { if (!window.confirm('Delete?')) return; try { await axios.delete(`/api/assignments/${id}`); fetchAssignments(); toast.success('Deleted'); } catch { toast.error('Failed'); } };
 
   const teachers = users.filter(u => u.role === 'teacher');
-
-  /* ── group students by class for display ── */
   const studentsByClass = students.reduce((acc, s) => {
-    const cls = `Class ${s.class}`;
-    if (!acc[cls]) acc[cls] = [];
-    acc[cls].push(s);
-    return acc;
+    const k = `Class ${s.class}`;
+    if (!acc[k]) acc[k] = [];
+    acc[k].push(s); return acc;
   }, {});
 
   return (
     <div className="dashboard">
       <div className="dashboard-header">
         <h1>⚙️ Admin Dashboard</h1>
-        <p>Welcome, {user.name}! Manage teachers, students and school content.</p>
+        <p>Welcome, {user.name}! Manage teachers, students, assignments and more.</p>
       </div>
 
-      {/* Stats */}
       <div className="stats-row">
         <div className="stat-card"><div className="num">{teachers.length}</div><div className="label">Teachers</div></div>
         <div className="stat-card"><div className="num">{students.length}</div><div className="label">Students</div></div>
         <div className="stat-card"><div className="num">{assignments.length}</div><div className="label">Assignments</div></div>
-        <div className="stat-card">
-          <div className="num">{[...new Set(students.map(s => s.class))].length}</div>
-          <div className="label">Classes Active</div>
-        </div>
+        <div className="stat-card"><div className="num">{[...new Set(students.map(s => s.class))].length}</div><div className="label">Classes</div></div>
       </div>
 
-      {/* Tabs */}
       <div className="tabs">
         <button className={`tab ${tab === 'teachers'    ? 'active' : ''}`} onClick={() => setTab('teachers')}>👨‍🏫 Teachers</button>
         <button className={`tab ${tab === 'students'    ? 'active' : ''}`} onClick={() => setTab('students')}>🧑‍🎓 Students</button>
         <button className={`tab ${tab === 'assignments' ? 'active' : ''}`} onClick={() => setTab('assignments')}>📋 Assignments</button>
+        <button className={`tab ${tab === 'upload'      ? 'active' : ''}`} onClick={() => setTab('upload')}>📊 Attendance &amp; Results</button>
       </div>
 
-      {/* ── Teachers tab ── */}
+      {/* ── Teachers ── */}
       {tab === 'teachers' && (
         <div>
           <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1rem' }}>
-            <button className="btn btn-primary" onClick={() => { setUserForm(emptyUser); setShowUserModal(true); }}>
-              + Add Teacher
-            </button>
+            <button className="btn btn-primary" onClick={() => { setUserForm(emptyUser); setShowUserModal(true); }}>+ Add Teacher</button>
           </div>
           <div className="table-wrap">
             <table>
@@ -132,8 +98,7 @@ const AdminDashboard = () => {
                   ? <tr><td colSpan="3" style={{ textAlign: 'center', color: '#888' }}>No teachers yet</td></tr>
                   : teachers.map(u => (
                     <tr key={u._id}>
-                      <td>{u.name}</td>
-                      <td>{u.email}</td>
+                      <td>{u.name}</td><td>{u.email}</td>
                       <td><button className="btn btn-danger btn-sm" onClick={() => handleDeleteUser(u._id)}>Delete</button></td>
                     </tr>
                   ))}
@@ -143,54 +108,49 @@ const AdminDashboard = () => {
         </div>
       )}
 
-      {/* ── Students tab ── */}
+      {/* ── Students ── */}
       {tab === 'students' && (
         <div>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
             <p style={{ color: '#666', fontSize: '0.9rem', margin: 0 }}>
-              Students added here appear in the teacher's attendance &amp; results forms, and in the parent portal search.
+              Students added here appear in teacher attendance forms and parent portal search.
             </p>
-            <button className="btn btn-primary" onClick={() => { setStudentForm(emptyStudent); setShowStudentModal(true); }}>
-              + Add Student
-            </button>
+            <button className="btn btn-primary" onClick={() => { setStudentForm(emptyStudent); setShowStudentModal(true); }}>+ Add Student</button>
           </div>
-
           {students.length === 0 ? (
             <div className="empty-state"><div className="icon">🧑‍🎓</div><p>No students added yet.</p></div>
           ) : (
-            Object.keys(studentsByClass).sort((a, b) => {
-              const n1 = parseInt(a.replace('Class ', ''));
-              const n2 = parseInt(b.replace('Class ', ''));
-              return n1 - n2;
-            }).map(cls => (
-              <div key={cls}>
-                <div className="section-title">{cls} — {studentsByClass[cls].length} student{studentsByClass[cls].length !== 1 ? 's' : ''}</div>
-                <div className="table-wrap" style={{ marginBottom: '1.5rem' }}>
-                  <table>
-                    <thead><tr><th>Name</th><th>Roll No.</th><th>Parent Name</th><th>Action</th></tr></thead>
-                    <tbody>
-                      {studentsByClass[cls].map(s => (
-                        <tr key={s._id}>
-                          <td><strong>{s.name}</strong></td>
-                          <td>{s.rollNumber || '—'}</td>
-                          <td>{s.parentName || '—'}</td>
-                          <td><button className="btn btn-danger btn-sm" onClick={() => handleDeleteStudent(s._id)}>Remove</button></td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+            Object.keys(studentsByClass)
+              .sort((a, b) => parseInt(a.replace('Class ', '')) - parseInt(b.replace('Class ', '')))
+              .map(cls => (
+                <div key={cls}>
+                  <div className="section-title">{cls} — {studentsByClass[cls].length} student{studentsByClass[cls].length !== 1 ? 's' : ''}</div>
+                  <div className="table-wrap" style={{ marginBottom: '1.5rem' }}>
+                    <table>
+                      <thead><tr><th>Name</th><th>Roll No.</th><th>Parent Name</th><th>Action</th></tr></thead>
+                      <tbody>
+                        {studentsByClass[cls].map(s => (
+                          <tr key={s._id}>
+                            <td><strong>{s.name}</strong></td>
+                            <td>{s.rollNumber || '—'}</td>
+                            <td>{s.parentName || '—'}</td>
+                            <td><button className="btn btn-danger btn-sm" onClick={() => handleDeleteStudent(s._id)}>Remove</button></td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
-              </div>
-            ))
+              ))
           )}
         </div>
       )}
 
-      {/* ── Assignments tab ── */}
+      {/* ── Assignments ── */}
       {tab === 'assignments' && (
         <div>
           <p style={{ color: '#666', fontSize: '0.9rem', marginBottom: '1rem' }}>
-            All assignments uploaded by teachers. Visible on the public Assignments page.
+            All assignments visible on the public Assignments page.
           </p>
           <div className="table-wrap">
             <table>
@@ -205,18 +165,27 @@ const AdminDashboard = () => {
                       <td><span className="badge badge-class">Class {a.class}</span></td>
                       <td>{a.teacherName}</td>
                       <td>{a.dueDate ? new Date(a.dueDate).toLocaleDateString('en-IN') : '—'}</td>
-                      <td>
-                        {a.filePath
-                          ? <a href={`/uploads/${a.filePath.replace(/\\/g, '/').split('uploads/')[1]}`}
-                              target="_blank" rel="noreferrer" className="btn btn-secondary btn-sm">⬇ PDF</a>
-                          : '—'}
-                      </td>
+                      <td>{a.filePath ? <a href={`/uploads/${a.filePath.replace(/\\/g, '/').split('uploads/')[1]}`} target="_blank" rel="noreferrer" className="btn btn-secondary btn-sm">⬇ PDF</a> : '—'}</td>
                       <td><button className="btn btn-danger btn-sm" onClick={() => handleDeleteAssignment(a._id)}>Delete</button></td>
                     </tr>
                   ))}
               </tbody>
             </table>
           </div>
+        </div>
+      )}
+
+      {/* ── Attendance & Results — link to the Attendance page ── */}
+      {tab === 'upload' && (
+        <div className="card" style={{ textAlign: 'center', padding: '2.5rem' }}>
+          <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📊</div>
+          <h2 style={{ color: '#1a237e', marginBottom: '0.8rem' }}>Attendance &amp; Results Upload</h2>
+          <p style={{ color: '#666', marginBottom: '1.5rem', maxWidth: 500, margin: '0 auto 1.5rem' }}>
+            Go to the Attendance page to upload monthly attendance numbers for any class, and to upload individual student result PDFs. Both features are available there for admin and teachers.
+          </p>
+          <Link to="/attendance" className="btn btn-primary" style={{ fontSize: '1rem', padding: '0.8rem 2rem' }}>
+            Go to Attendance &amp; Results Page →
+          </Link>
         </div>
       )}
 

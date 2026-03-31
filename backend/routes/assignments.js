@@ -1,12 +1,10 @@
 const express = require('express');
-const router = express.Router();
-const multer = require('multer');
-const path = require('path');
-const fs = require('fs');
+const router  = express.Router();
+const multer  = require('multer');
+const fs      = require('fs');
 const Assignment = require('../models/Assignment');
-const { protect, teacherOrAdmin, adminOnly } = require('../middleware/auth');
+const { protect, teacherOrAdmin } = require('../middleware/auth');
 
-// Multer storage config
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     const dir = 'uploads/assignments';
@@ -17,6 +15,7 @@ const storage = multer.diskStorage({
     cb(null, Date.now() + '-' + file.originalname.replace(/\s/g, '_'));
   }
 });
+
 const upload = multer({
   storage,
   limits: { fileSize: 10 * 1024 * 1024 },
@@ -24,9 +23,9 @@ const upload = multer({
     if (file.mimetype === 'application/pdf') cb(null, true);
     else cb(new Error('Only PDF files are allowed'), false);
   }
-}); // 10MB limit
+});
 
-// PUBLIC - Get all assignments (no login needed, for the Assignments page)
+// PUBLIC — all assignments (no login needed)
 router.get('/public', async (req, res) => {
   try {
     const assignments = await Assignment.find().sort({ createdAt: -1 });
@@ -36,17 +35,25 @@ router.get('/public', async (req, res) => {
   }
 });
 
-// Upload assignment (teacher/admin)
+// Upload assignment (teacher or admin)
+// Admin can pass teacherNameOverride to specify which teacher uploaded it
 router.post('/', protect, teacherOrAdmin, upload.single('file'), async (req, res) => {
-  const { title, description, subject, class: cls, dueDate } = req.body;
+  const { title, description, subject, class: cls, dueDate, teacherNameOverride } = req.body;
+  if (!req.file) return res.status(400).json({ message: 'PDF file is required' });
   try {
+    // Use override if admin provides one, otherwise use logged-in user's name
+    const teacherName = (req.user.role === 'admin' && teacherNameOverride)
+      ? teacherNameOverride.trim()
+      : req.user.name;
+
     const assignment = await Assignment.create({
       title, description, subject,
-      class: Number(cls), dueDate,
-      filePath: req.file ? req.file.path : null,
-      fileName: req.file ? req.file.originalname : null,
+      class: Number(cls),
+      dueDate: dueDate || null,
+      filePath: req.file.path,
+      fileName: req.file.originalname,
       uploadedBy: req.user._id,
-      teacherName: req.user.name,
+      teacherName,
     });
     res.status(201).json(assignment);
   } catch (err) {
@@ -54,11 +61,10 @@ router.post('/', protect, teacherOrAdmin, upload.single('file'), async (req, res
   }
 });
 
-// Get assignments (filter by class for students)
+// Protected GET (for dashboards that need auth)
 router.get('/', protect, async (req, res) => {
   try {
-    let query = {};
-    if (req.user.role === 'student') query.class = req.user.class;
+    const query = {};
     if (req.query.class) query.class = Number(req.query.class);
     const assignments = await Assignment.find(query).sort({ createdAt: -1 });
     res.json(assignments);
@@ -67,7 +73,7 @@ router.get('/', protect, async (req, res) => {
   }
 });
 
-// Delete assignment (teacher who uploaded or admin)
+// Delete (teacher who uploaded or admin)
 router.delete('/:id', protect, async (req, res) => {
   try {
     const assignment = await Assignment.findById(req.params.id);

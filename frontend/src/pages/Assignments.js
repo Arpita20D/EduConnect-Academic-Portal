@@ -6,13 +6,15 @@ import { useAuth } from '../context/AuthContext';
 const Assignments = () => {
   const { user } = useAuth();
   const [assignments, setAssignments] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading]         = useState(true);
   const [filterClass, setFilterClass] = useState('');
   const [filterSubject, setFilterSubject] = useState('');
-  const [search, setSearch] = useState('');
-  const [showUpload, setShowUpload] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-  const [form, setForm] = useState({ title: '', description: '', subject: '', class: '', dueDate: '' });
+  const [search, setSearch]           = useState('');
+  const [showUpload, setShowUpload]   = useState(false);
+  const [submitting, setSubmitting]   = useState(false);
+  const [form, setForm] = useState({
+    title: '', description: '', subject: '', class: '', dueDate: '', teacherNameOverride: ''
+  });
   const [file, setFile] = useState(null);
 
   const fetchAssignments = async () => {
@@ -32,7 +34,15 @@ const Assignments = () => {
     if (!file) return toast.error('Please attach a PDF file');
     setSubmitting(true);
     const formData = new FormData();
-    Object.entries(form).forEach(([k, v]) => formData.append(k, v));
+    formData.append('title',       form.title);
+    formData.append('description', form.description);
+    formData.append('subject',     form.subject);
+    formData.append('class',       form.class);
+    formData.append('dueDate',     form.dueDate);
+    // Admin can specify teacher name manually; teachers use their own name
+    if (user.role === 'admin' && form.teacherNameOverride.trim()) {
+      formData.append('teacherNameOverride', form.teacherNameOverride.trim());
+    }
     formData.append('file', file);
     try {
       await axios.post('/api/assignments', formData, {
@@ -40,7 +50,7 @@ const Assignments = () => {
       });
       toast.success('Assignment uploaded!');
       setShowUpload(false);
-      setForm({ title: '', description: '', subject: '', class: '', dueDate: '' });
+      setForm({ title: '', description: '', subject: '', class: '', dueDate: '', teacherNameOverride: '' });
       setFile(null);
       fetchAssignments();
     } catch (err) {
@@ -60,7 +70,6 @@ const Assignments = () => {
     }
   };
 
-  // Derive unique subjects from current list (filtered by class if selected)
   const subjectOptions = [...new Set(
     assignments
       .filter(a => !filterClass || a.class === Number(filterClass))
@@ -68,9 +77,9 @@ const Assignments = () => {
   )].sort();
 
   const filtered = assignments.filter(a => {
-    const matchClass = !filterClass || a.class === Number(filterClass);
+    const matchClass   = !filterClass   || a.class === Number(filterClass);
     const matchSubject = !filterSubject || a.subject === filterSubject;
-    const matchSearch = !search ||
+    const matchSearch  = !search ||
       a.title.toLowerCase().includes(search.toLowerCase()) ||
       a.subject.toLowerCase().includes(search.toLowerCase()) ||
       (a.teacherName || '').toLowerCase().includes(search.toLowerCase());
@@ -81,44 +90,83 @@ const Assignments = () => {
 
   return (
     <div className="container">
-      {/* Header */}
+
+      {/* ── Page header ── */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
         <h1 className="page-title" style={{ margin: 0 }}>📚 Assignments</h1>
         {isTeacherOrAdmin && (
-          <button className="btn btn-primary" onClick={() => setShowUpload(!showUpload)}>
+          <button className="btn btn-primary" onClick={() => setShowUpload(o => !o)}>
             {showUpload ? '✕ Cancel' : '+ Upload Assignment'}
           </button>
         )}
       </div>
 
-      {/* Upload Form (teachers/admin only) */}
+      {/* ── Upload form (teacher / admin only) ── */}
       {showUpload && isTeacherOrAdmin && (
         <div className="card" style={{ marginBottom: '2rem', border: '2px solid #3949ab' }}>
           <h3 style={{ color: '#1a237e', marginBottom: '1rem' }}>📤 Upload New Assignment</h3>
           <form onSubmit={handleUpload}>
+
             <div className="form-group">
-              <label>Title *</label>
-              <input value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} required placeholder="e.g. Chapter 5 – Algebra" />
+              <label>Assignment Title *</label>
+              <input
+                value={form.title}
+                onChange={e => setForm({ ...form, title: e.target.value })}
+                required placeholder="e.g. Chapter 5 – Algebra Worksheet"
+              />
             </div>
+
             <div className="form-row">
               <div className="form-group">
                 <label>Subject *</label>
-                <input value={form.subject} onChange={e => setForm({ ...form, subject: e.target.value })} required placeholder="e.g. Mathematics" />
+                <input
+                  value={form.subject}
+                  onChange={e => setForm({ ...form, subject: e.target.value })}
+                  required placeholder="e.g. Mathematics"
+                />
               </div>
               <div className="form-group">
                 <label>Class *</label>
                 <select value={form.class} onChange={e => setForm({ ...form, class: e.target.value })} required>
                   <option value="">Select Class</option>
                   {[...Array(12)].map((_, i) => (
-                    <option key={i + 1} value={i + 1}>Class {i + 1}</option>
+                    <option key={i+1} value={i+1}>Class {i+1}</option>
                   ))}
                 </select>
               </div>
             </div>
+
+            {/* Admin: manually enter teacher name */}
+            {user.role === 'admin' && (
+              <div className="form-group">
+                <label>Teacher Name *</label>
+                <input
+                  value={form.teacherNameOverride}
+                  onChange={e => setForm({ ...form, teacherNameOverride: e.target.value })}
+                  required
+                  placeholder="Enter the teacher's name for this assignment"
+                />
+              </div>
+            )}
+
+            {/* Teacher: their name is used automatically — just show it */}
+            {user.role === 'teacher' && (
+              <div className="form-group">
+                <label>Teacher Name</label>
+                <input value={user.name} disabled style={{ background: '#f5f5f5', color: '#666' }} />
+                <small style={{ color: '#888' }}>Your name is automatically attached to this assignment.</small>
+              </div>
+            )}
+
             <div className="form-group">
               <label>Description (optional)</label>
-              <textarea value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} rows="2" placeholder="Brief instructions..." />
+              <textarea
+                value={form.description}
+                onChange={e => setForm({ ...form, description: e.target.value })}
+                rows="2" placeholder="Brief instructions for students..."
+              />
             </div>
+
             <div className="form-row">
               <div className="form-group">
                 <label>Due Date (optional)</label>
@@ -126,15 +174,11 @@ const Assignments = () => {
               </div>
               <div className="form-group">
                 <label>PDF File *</label>
-                <input
-                  type="file"
-                  accept=".pdf"
-                  onChange={e => setFile(e.target.files[0])}
-                  required
-                />
-                <small style={{ color: '#888' }}>Only PDF files, max 10MB</small>
+                <input type="file" accept=".pdf" onChange={e => setFile(e.target.files[0])} required />
+                <small style={{ color: '#888' }}>Only PDF · max 10 MB</small>
               </div>
             </div>
+
             <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
               <button type="button" className="btn btn-secondary" onClick={() => setShowUpload(false)}>Cancel</button>
               <button type="submit" className="btn btn-primary" disabled={submitting}>
@@ -145,7 +189,7 @@ const Assignments = () => {
         </div>
       )}
 
-      {/* Search & Filter Bar */}
+      {/* ── Search & filter bar ── */}
       <div className="card" style={{ marginBottom: '1.5rem' }}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem', alignItems: 'end' }}>
           <div className="form-group" style={{ margin: 0 }}>
@@ -153,20 +197,18 @@ const Assignments = () => {
             <input
               value={search}
               onChange={e => setSearch(e.target.value)}
-              placeholder="Search by title, subject, teacher..."
+              placeholder="Title, subject or teacher..."
             />
           </div>
           <div className="form-group" style={{ margin: 0 }}>
-            <label>📖 Filter by Class</label>
+            <label>📖 Class</label>
             <select value={filterClass} onChange={e => { setFilterClass(e.target.value); setFilterSubject(''); }}>
               <option value="">All Classes</option>
-              {[...Array(12)].map((_, i) => (
-                <option key={i + 1} value={i + 1}>Class {i + 1}</option>
-              ))}
+              {[...Array(12)].map((_, i) => <option key={i+1} value={i+1}>Class {i+1}</option>)}
             </select>
           </div>
           <div className="form-group" style={{ margin: 0 }}>
-            <label>📝 Filter by Subject</label>
+            <label>📝 Subject</label>
             <select value={filterSubject} onChange={e => setFilterSubject(e.target.value)}>
               <option value="">All Subjects</option>
               {subjectOptions.map(s => <option key={s} value={s}>{s}</option>)}
@@ -175,23 +217,22 @@ const Assignments = () => {
           <div style={{ display: 'flex', alignItems: 'flex-end' }}>
             <button
               className="btn btn-secondary"
-              onClick={() => { setFilterClass(''); setFilterSubject(''); setSearch(''); }}
               style={{ width: '100%' }}
+              onClick={() => { setFilterClass(''); setFilterSubject(''); setSearch(''); }}
             >
-              ✕ Clear Filters
+              ✕ Clear
             </button>
           </div>
         </div>
       </div>
 
-      {/* Results count */}
       <p style={{ color: '#666', marginBottom: '1rem', fontSize: '0.9rem' }}>
         Showing <strong>{filtered.length}</strong> assignment{filtered.length !== 1 ? 's' : ''}
-        {filterClass && ` for Class ${filterClass}`}
+        {filterClass   && ` · Class ${filterClass}`}
         {filterSubject && ` · ${filterSubject}`}
       </p>
 
-      {/* Assignment Cards */}
+      {/* ── Assignment cards ── */}
       {loading ? (
         <div className="loading">Loading assignments...</div>
       ) : filtered.length === 0 ? (
@@ -217,22 +258,24 @@ const Assignments = () => {
                 {a.filePath && (
                   <a
                     href={`/uploads/${a.filePath.replace(/\\/g, '/').split('uploads/')[1]}`}
-                    download
-                    target="_blank"
-                    rel="noreferrer"
+                    download target="_blank" rel="noreferrer"
                     className="btn btn-success btn-sm"
                   >
                     ⬇ Download PDF
                   </a>
                 )}
-                {(isTeacherOrAdmin) && (
+                {isTeacherOrAdmin && (
                   <button className="btn btn-danger btn-sm" onClick={() => handleDelete(a._id)}>Delete</button>
                 )}
               </div>
             </div>
-            {a.description && <p style={{ color: '#555', margin: '0.5rem 0', lineHeight: 1.6 }}>{a.description}</p>}
+
+            {a.description && (
+              <p style={{ color: '#555', margin: '0.5rem 0', lineHeight: 1.6 }}>{a.description}</p>
+            )}
+
             <div style={{ display: 'flex', gap: '1.5rem', marginTop: '0.6rem', fontSize: '0.83rem', color: '#888', flexWrap: 'wrap' }}>
-              <span>👨‍🏫 {a.teacherName}</span>
+              <span>👨‍🏫 <strong>{a.teacherName}</strong></span>
               {a.dueDate && (
                 <span>📅 Due: {new Date(a.dueDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
               )}

@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '../context/AuthContext';
+import { fileUrl } from '../utils/fileUrl';
 
 /* ─────────────────────────────────────────────
    UPLOAD PANEL  (teachers + admins only)
@@ -310,7 +311,7 @@ const UploadResults = () => {
                   <td style={{ color: '#666', maxWidth: 160, fontSize: '0.85rem' }}>{c.remarks || '—'}</td>
                   <td style={{ fontSize: '0.83rem', color: '#888' }}>{new Date(c.createdAt).toLocaleDateString('en-IN')}</td>
                   <td>
-                    <a href={`/uploads/${c.filePath.replace(/\\/g, '/').split('uploads/')[1]}`}
+                    <a href={fileUrl(c.filePath)}
                        target="_blank" rel="noreferrer" className="btn btn-secondary btn-sm">⬇ PDF</a>
                   </td>
                   <td><button className="btn btn-danger btn-sm" onClick={() => handleDelete(c._id)}>Delete</button></td>

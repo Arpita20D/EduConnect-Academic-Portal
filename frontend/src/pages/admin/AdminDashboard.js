@@ -3,6 +3,7 @@ import axios from 'axios';
 import { toast } from 'react-toastify';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { fileUrl } from '../../utils/fileUrl';
 
 const AdminDashboard = () => {
   const { user } = useAuth();
@@ -165,7 +166,7 @@ const AdminDashboard = () => {
                       <td><span className="badge badge-class">Class {a.class}</span></td>
                       <td>{a.teacherName}</td>
                       <td>{a.dueDate ? new Date(a.dueDate).toLocaleDateString('en-IN') : '—'}</td>
-                      <td>{a.filePath ? <a href={`/uploads/${a.filePath.replace(/\\/g, '/').split('uploads/')[1]}`} target="_blank" rel="noreferrer" className="btn btn-secondary btn-sm">⬇ PDF</a> : '—'}</td>
+                      <td>{a.filePath ? <a href={fileUrl(a.filePath)} target="_blank" rel="noreferrer" className="btn btn-secondary btn-sm">⬇ PDF</a> : '—'}</td>
                       <td><button className="btn btn-danger btn-sm" onClick={() => handleDeleteAssignment(a._id)}>Delete</button></td>
                     </tr>
                   ))}

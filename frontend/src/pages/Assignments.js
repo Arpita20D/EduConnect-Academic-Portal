@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import { useAuth } from '../context/AuthContext';
+import { fileUrl } from '../utils/fileUrl';
 
 const Assignments = () => {
   const { user } = useAuth();
@@ -39,7 +40,6 @@ const Assignments = () => {
     formData.append('subject',     form.subject);
     formData.append('class',       form.class);
     formData.append('dueDate',     form.dueDate);
-    // Admin can specify teacher name manually; teachers use their own name
     if (user.role === 'admin' && form.teacherNameOverride.trim()) {
       formData.append('teacherNameOverride', form.teacherNameOverride.trim());
     }
@@ -91,7 +91,6 @@ const Assignments = () => {
   return (
     <div className="container">
 
-      {/* ── Page header ── */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
         <h1 className="page-title" style={{ margin: 0 }}>📚 Assignments</h1>
         {isTeacherOrAdmin && (
@@ -101,55 +100,33 @@ const Assignments = () => {
         )}
       </div>
 
-      {/* ── Upload form (teacher / admin only) ── */}
       {showUpload && isTeacherOrAdmin && (
         <div className="card" style={{ marginBottom: '2rem', border: '2px solid #3949ab' }}>
           <h3 style={{ color: '#1a237e', marginBottom: '1rem' }}>📤 Upload New Assignment</h3>
           <form onSubmit={handleUpload}>
-
             <div className="form-group">
               <label>Assignment Title *</label>
-              <input
-                value={form.title}
-                onChange={e => setForm({ ...form, title: e.target.value })}
-                required placeholder="e.g. Chapter 5 – Algebra Worksheet"
-              />
+              <input value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} required placeholder="e.g. Chapter 5 – Algebra Worksheet" />
             </div>
-
             <div className="form-row">
               <div className="form-group">
                 <label>Subject *</label>
-                <input
-                  value={form.subject}
-                  onChange={e => setForm({ ...form, subject: e.target.value })}
-                  required placeholder="e.g. Mathematics"
-                />
+                <input value={form.subject} onChange={e => setForm({ ...form, subject: e.target.value })} required placeholder="e.g. Mathematics" />
               </div>
               <div className="form-group">
                 <label>Class *</label>
                 <select value={form.class} onChange={e => setForm({ ...form, class: e.target.value })} required>
                   <option value="">Select Class</option>
-                  {[...Array(12)].map((_, i) => (
-                    <option key={i+1} value={i+1}>Class {i+1}</option>
-                  ))}
+                  {[...Array(12)].map((_, i) => <option key={i+1} value={i+1}>Class {i+1}</option>)}
                 </select>
               </div>
             </div>
-
-            {/* Admin: manually enter teacher name */}
             {user.role === 'admin' && (
               <div className="form-group">
                 <label>Teacher Name *</label>
-                <input
-                  value={form.teacherNameOverride}
-                  onChange={e => setForm({ ...form, teacherNameOverride: e.target.value })}
-                  required
-                  placeholder="Enter the teacher's name for this assignment"
-                />
+                <input value={form.teacherNameOverride} onChange={e => setForm({ ...form, teacherNameOverride: e.target.value })} required placeholder="Enter the teacher's name for this assignment" />
               </div>
             )}
-
-            {/* Teacher: their name is used automatically — just show it */}
             {user.role === 'teacher' && (
               <div className="form-group">
                 <label>Teacher Name</label>
@@ -157,16 +134,10 @@ const Assignments = () => {
                 <small style={{ color: '#888' }}>Your name is automatically attached to this assignment.</small>
               </div>
             )}
-
             <div className="form-group">
               <label>Description (optional)</label>
-              <textarea
-                value={form.description}
-                onChange={e => setForm({ ...form, description: e.target.value })}
-                rows="2" placeholder="Brief instructions for students..."
-              />
+              <textarea value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} rows="2" placeholder="Brief instructions for students..." />
             </div>
-
             <div className="form-row">
               <div className="form-group">
                 <label>Due Date (optional)</label>
@@ -178,27 +149,19 @@ const Assignments = () => {
                 <small style={{ color: '#888' }}>Only PDF · max 10 MB</small>
               </div>
             </div>
-
             <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
               <button type="button" className="btn btn-secondary" onClick={() => setShowUpload(false)}>Cancel</button>
-              <button type="submit" className="btn btn-primary" disabled={submitting}>
-                {submitting ? 'Uploading...' : '⬆ Upload'}
-              </button>
+              <button type="submit" className="btn btn-primary" disabled={submitting}>{submitting ? 'Uploading...' : '⬆ Upload'}</button>
             </div>
           </form>
         </div>
       )}
 
-      {/* ── Search & filter bar ── */}
       <div className="card" style={{ marginBottom: '1.5rem' }}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem', alignItems: 'end' }}>
           <div className="form-group" style={{ margin: 0 }}>
             <label>🔍 Search</label>
-            <input
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              placeholder="Title, subject or teacher..."
-            />
+            <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Title, subject or teacher..." />
           </div>
           <div className="form-group" style={{ margin: 0 }}>
             <label>📖 Class</label>
@@ -215,13 +178,7 @@ const Assignments = () => {
             </select>
           </div>
           <div style={{ display: 'flex', alignItems: 'flex-end' }}>
-            <button
-              className="btn btn-secondary"
-              style={{ width: '100%' }}
-              onClick={() => { setFilterClass(''); setFilterSubject(''); setSearch(''); }}
-            >
-              ✕ Clear
-            </button>
+            <button className="btn btn-secondary" style={{ width: '100%' }} onClick={() => { setFilterClass(''); setFilterSubject(''); setSearch(''); }}>✕ Clear</button>
           </div>
         </div>
       </div>
@@ -232,14 +189,10 @@ const Assignments = () => {
         {filterSubject && ` · ${filterSubject}`}
       </p>
 
-      {/* ── Assignment cards ── */}
       {loading ? (
         <div className="loading">Loading assignments...</div>
       ) : filtered.length === 0 ? (
-        <div className="empty-state">
-          <div className="icon">📋</div>
-          <p>No assignments found. Try changing your filters.</p>
-        </div>
+        <div className="empty-state"><div className="icon">📋</div><p>No assignments found. Try changing your filters.</p></div>
       ) : (
         filtered.map(a => (
           <div key={a._id} className="card">
@@ -249,36 +202,22 @@ const Assignments = () => {
                 <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginTop: '0.4rem' }}>
                   <span className="badge badge-class">Class {a.class}</span>
                   <span className="badge badge-subject">{a.subject}</span>
-                  {a.dueDate && new Date(a.dueDate) < new Date() && (
-                    <span className="badge badge-urgent">OVERDUE</span>
-                  )}
+                  {a.dueDate && new Date(a.dueDate) < new Date() && <span className="badge badge-urgent">OVERDUE</span>}
                 </div>
               </div>
               <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start', flexShrink: 0 }}>
                 {a.filePath && (
-                  <a
-                    href={`/uploads/${a.filePath.replace(/\\/g, '/').split('uploads/')[1]}`}
-                    download target="_blank" rel="noreferrer"
-                    className="btn btn-success btn-sm"
-                  >
-                    ⬇ Download PDF
-                  </a>
+                  <a href={fileUrl(a.filePath)} download target="_blank" rel="noreferrer" className="btn btn-success btn-sm">⬇ Download PDF</a>
                 )}
                 {isTeacherOrAdmin && (
                   <button className="btn btn-danger btn-sm" onClick={() => handleDelete(a._id)}>Delete</button>
                 )}
               </div>
             </div>
-
-            {a.description && (
-              <p style={{ color: '#555', margin: '0.5rem 0', lineHeight: 1.6 }}>{a.description}</p>
-            )}
-
+            {a.description && <p style={{ color: '#555', margin: '0.5rem 0', lineHeight: 1.6 }}>{a.description}</p>}
             <div style={{ display: 'flex', gap: '1.5rem', marginTop: '0.6rem', fontSize: '0.83rem', color: '#888', flexWrap: 'wrap' }}>
               <span>👨‍🏫 <strong>{a.teacherName}</strong></span>
-              {a.dueDate && (
-                <span>📅 Due: {new Date(a.dueDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
-              )}
+              {a.dueDate && <span>📅 Due: {new Date(a.dueDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</span>}
               <span>🗓 Posted: {new Date(a.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
               {a.fileName && <span>📎 {a.fileName}</span>}
             </div>

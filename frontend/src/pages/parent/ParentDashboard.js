@@ -2,17 +2,18 @@ import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import { useAuth } from '../../context/AuthContext';
+import { fileUrl } from '../../utils/fileUrl';
 
 const ParentDashboard = () => {
   const { user } = useAuth();
   const [tab, setTab] = useState('attendance');
-  const [attRecords,   setAttRecords]   = useState([]);
-  const [attMonth,     setAttMonth]     = useState('');
-  const [attLoading,   setAttLoading]   = useState(false);
-  const [reportCards,  setReportCards]  = useState([]);
-  const [rcLoading,    setRcLoading]    = useState(false);
-  const [assignments,  setAssignments]  = useState([]);
-  const [assLoading,   setAssLoading]   = useState(false);
+  const [attRecords,    setAttRecords]    = useState([]);
+  const [attMonth,      setAttMonth]      = useState('');
+  const [attLoading,    setAttLoading]    = useState(false);
+  const [reportCards,   setReportCards]   = useState([]);
+  const [rcLoading,     setRcLoading]     = useState(false);
+  const [assignments,   setAssignments]   = useState([]);
+  const [assLoading,    setAssLoading]    = useState(false);
   const [notifications, setNotifications] = useState([]);
 
   const childName  = user.childName;
@@ -70,10 +71,9 @@ const ParentDashboard = () => {
     );
   }
 
-  // Overall attendance summary across all months
-  const totalPresent  = attRecords.reduce((s, r) => s + r.daysPresent, 0);
-  const totalDaysAll  = attRecords.reduce((s, r) => s + r.totalDays, 0);
-  const overallPct    = totalDaysAll > 0 ? Math.round((totalPresent / totalDaysAll) * 100) : null;
+  const totalPresent = attRecords.reduce((s, r) => s + r.daysPresent, 0);
+  const totalDaysAll = attRecords.reduce((s, r) => s + r.totalDays, 0);
+  const overallPct   = totalDaysAll > 0 ? Math.round((totalPresent / totalDaysAll) * 100) : null;
 
   return (
     <div className="dashboard">
@@ -125,10 +125,10 @@ const ParentDashboard = () => {
                   {attRecords.map(r => {
                     const pct = Math.round((r.daysPresent / r.totalDays) * 100);
                     const col = pct >= 75 ? '#2e7d32' : pct >= 50 ? '#e65100' : '#c62828';
-                    const monthLabel = new Date(r.month + '-01').toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
+                    const ml  = new Date(r.month + '-01').toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
                     return (
                       <tr key={r._id}>
-                        <td><strong>{monthLabel}</strong></td>
+                        <td><strong>{ml}</strong></td>
                         <td style={{ textAlign: 'center' }}>{r.totalDays}</td>
                         <td style={{ textAlign: 'center', color: '#2e7d32', fontWeight: 600 }}>{r.daysPresent}</td>
                         <td style={{ textAlign: 'center', color: '#c62828', fontWeight: 600 }}>{r.daysAbsent}</td>
@@ -162,8 +162,9 @@ const ParentDashboard = () => {
                   <h3>📄 {c.term}</h3>
                   <span className="badge badge-class">Class {c.class}</span>
                 </div>
-                <a href={`/uploads/${c.filePath.replace(/\\/g, '/').split('uploads/')[1]}`}
-                   target="_blank" rel="noreferrer" className="btn btn-success btn-sm">⬇ Download PDF</a>
+                <a href={fileUrl(c.filePath)} target="_blank" rel="noreferrer" className="btn btn-success btn-sm">
+                  ⬇ Download PDF
+                </a>
               </div>
               {c.remarks && <p style={{ color: '#555', marginTop: '0.5rem' }}>📝 {c.remarks}</p>}
               <p style={{ color: '#888', fontSize: '0.82rem', marginTop: '0.5rem' }}>
@@ -190,8 +191,9 @@ const ParentDashboard = () => {
                   </div>
                 </div>
                 {a.filePath && (
-                  <a href={`/uploads/${a.filePath.replace(/\\/g, '/').split('uploads/')[1]}`}
-                     target="_blank" rel="noreferrer" className="btn btn-success btn-sm">⬇ PDF</a>
+                  <a href={fileUrl(a.filePath)} target="_blank" rel="noreferrer" className="btn btn-success btn-sm">
+                    ⬇ PDF
+                  </a>
                 )}
               </div>
               {a.description && <p style={{ color: '#555', marginTop: '0.5rem' }}>{a.description}</p>}
@@ -214,7 +216,9 @@ const ParentDashboard = () => {
               <h3>{typeIcon[n.type]} {n.title}</h3>
               <span className={`badge badge-${n.type}`}>{n.type.toUpperCase()}</span>
               <p style={{ margin: '0.8rem 0', color: '#444' }}>{n.message}</p>
-              <p className="notif-meta">{new Date(n.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
+              <p className="notif-meta">
+                {new Date(n.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+              </p>
             </div>
           ))}
         </div>

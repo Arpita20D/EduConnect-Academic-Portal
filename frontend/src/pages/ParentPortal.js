@@ -3,6 +3,7 @@ import axios from 'axios';
 import { toast } from 'react-toastify';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { fileUrl } from '../utils/fileUrl';
 
 const ParentPortal = () => {
   const { user } = useAuth();
@@ -189,7 +190,7 @@ const ParentPortal = () => {
                     <h3>📄 {c.term}</h3>
                     <span className="badge badge-class">Class {c.class}</span>
                   </div>
-                  <a href={`/uploads/${c.filePath.replace(/\\/g, '/').split('uploads/')[1]}`}
+                  <a href={fileUrl(c.filePath)}
                      target="_blank" rel="noreferrer" className="btn btn-success btn-sm">⬇ Download PDF</a>
                 </div>
                 {c.remarks && <p style={{ color: '#555', marginTop: '0.5rem' }}>📝 {c.remarks}</p>}
